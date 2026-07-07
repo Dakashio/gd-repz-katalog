@@ -86,6 +86,9 @@
   .search-row svg{ position:absolute; left:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; pointer-events:none; }
   .icon-btn{ flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:17px; transition:all .18s ease; }
   .icon-btn:hover{ border-color:var(--gold); background:var(--surface-hover); }
+  .gender-row{ display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:4px; width:fit-content; }
+  .gender-btn{ padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+  .gender-btn.active{ background:linear-gradient(135deg,var(--violet),var(--violet-deep)); color:#fff; }
   .pills-row, .chips-row{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; flex:1; min-width:0; }
   .pills-row::-webkit-scrollbar, .chips-row::-webkit-scrollbar{ display:none; }
   .scroll-row-wrap{ display:flex; align-items:center; gap:4px; min-width:0; }
@@ -206,6 +209,11 @@
     </div>
     <button class="icon-btn" id="shuffleBtn" title="Überrasch mich" aria-label="Zufälliges Teil anzeigen">🎲</button>
   </div>
+  <div class="gender-row" id="genderRow">
+    <button class="gender-btn" data-gender="alle">Alle</button>
+    <button class="gender-btn" data-gender="herren">Herren</button>
+    <button class="gender-btn" data-gender="damen">Damen</button>
+  </div>
   <div class="scroll-row-wrap">
     <button class="scroll-arrow left" data-target="catPills" aria-label="Kategorien nach links scrollen">‹</button>
     <div class="pills-row" id="catPills"></div>
@@ -285,8 +293,10 @@ const PRODUCTS = [];
 function addGroup(ids, cat, brand, title, addedAt){
   ids.forEach(id => PRODUCTS.push({id, cat, brand, title, addedAt: addedAt || 0}));
 }
+let GENDER_MAP = {}; // wird von gender-data.js befuellt, falls vorhanden (Herren/Damen-Klassifizierung)
 </script>
 <script src="products-data.js"></script>
+<script src="gender-data.js" onerror="console.log('gender-data.js nicht gefunden - alle Teile gelten bis dahin als unisex')"></script>
 <script>
 if(PRODUCTS.length === 0){
   document.querySelector('main').innerHTML = '<div class="empty" style="padding:80px 20px"><h3>Keine Produktdaten gefunden</h3><p>Die Datei "products-data.js" muss im selben Ordner wie index.html liegen.</p></div>';
@@ -318,9 +328,13 @@ let initialTheme = 'dark';
 try{ initialTheme = localStorage.getItem('gdrepz_theme') || 'dark'; }catch(e){}
 applyTheme(initialTheme);
 
-let state = { cat:'alle', brand:'alle', q:'' };
+let state = { cat:'alle', brand:'alle', q:'', gender:'alle' };
 let viewMode = 'alle'; // 'alle' | 'gemerkt'
 let lightboxIndex = -1;
+
+function productGender(p){
+  return GENDER_MAP[p.id] || 'unisex';
+}
 
 function loadStateFromUrl(){
   const params = new URLSearchParams(location.hash.replace(/^#/, ''));
@@ -328,6 +342,7 @@ function loadStateFromUrl(){
   if(params.get('cat')) state.cat = params.get('cat');
   if(params.get('brand')) state.brand = params.get('brand');
   if(params.get('q')) state.q = params.get('q');
+  if(params.get('gender')) state.gender = params.get('gender');
   return params.get('item');
 }
 function syncStateToUrl(){
@@ -336,6 +351,7 @@ function syncStateToUrl(){
   if(state.cat!=='alle') params.set('cat', state.cat);
   if(state.brand!=='alle') params.set('brand', state.brand);
   if(state.q) params.set('q', state.q);
+  if(state.gender!=='alle') params.set('gender', state.gender);
   const hash = params.toString();
   history.replaceState(null, '', hash ? '#'+hash : location.pathname + location.search);
 }
@@ -354,6 +370,10 @@ function filteredProducts(){
   const q = state.q.trim().toLowerCase();
   return baseList().filter(p=>{
     if(state.brand!=='alle' && p.brand!==state.brand) return false;
+    if(state.gender!=='alle'){
+      const g = productGender(p);
+      if(g!==state.gender && g!=='unisex') return false;
+    }
     if(q && !p.brand.toLowerCase().includes(q) && !p.title.toLowerCase().includes(q) && !categoryLabel(p.cat).toLowerCase().includes(q)) return false;
     return true;
   });
@@ -375,6 +395,10 @@ function renderCategoryPills(){
     return `<button class="pill ${active?'active':''}" data-cat="${c.key}">${c.icon} ${c.label} <span class="count">${count}</span></button>`;
   }).join('');
   wrap.innerHTML = specialHtml + catHtml;
+}
+
+function renderGenderRow(){
+  document.querySelectorAll('.gender-btn').forEach(b=>b.classList.toggle('active', b.dataset.gender===state.gender));
 }
 
 function renderBrandChips(){
@@ -399,6 +423,7 @@ function renderActiveFilters(){
     chips.push({type:'cat', label: categoryIcon(state.cat)+' '+categoryLabel(state.cat)});
   }
   if(state.brand!=='alle') chips.push({type:'brand', label: state.brand});
+  if(state.gender!=='alle') chips.push({type:'gender', label: state.gender==='herren'?'Herren':'Damen'});
   if(state.q) chips.push({type:'q', label: '"'+state.q+'"'});
   if(chips.length===0){ wrap.innerHTML=''; return; }
   wrap.innerHTML = chips.map(c=>`<button class="active-chip" data-type="${c.type}">${c.label} ✕</button>`).join('')
@@ -444,6 +469,7 @@ function renderGrid(){
 function renderAll(){
   visibleCount = PAGE_SIZE;
   renderCategoryPills();
+  renderGenderRow();
   renderBrandChips();
   renderActiveFilters();
   renderGrid();
@@ -500,11 +526,17 @@ function openProductById(id){
   }
 }
 function resetFilters(){
-  state = { cat:'alle', brand:'alle', q:'' };
+  state = { cat:'alle', brand:'alle', q:'', gender:'alle' };
   viewMode = 'alle';
   document.getElementById('searchInput').value = '';
   renderAll();
 }
+
+document.getElementById('genderRow').addEventListener('click', e=>{
+  const btn = e.target.closest('.gender-btn'); if(!btn) return;
+  state.gender = btn.dataset.gender;
+  renderAll();
+});
 
 document.getElementById('catPills').addEventListener('click', e=>{
   const btn = e.target.closest('.pill'); if(!btn) return;
@@ -525,6 +557,7 @@ document.getElementById('activeFilters').addEventListener('click', e=>{
   if(type==='view') viewMode = 'alle';
   if(type==='cat') state.cat = 'alle';
   if(type==='brand') state.brand = 'alle';
+  if(type==='gender') state.gender = 'alle';
   if(type==='q'){ state.q=''; document.getElementById('searchInput').value=''; }
   renderAll();
 });
