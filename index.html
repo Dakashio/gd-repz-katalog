@@ -562,15 +562,11 @@ function updateLightbox(){
   document.getElementById('lbBrand').textContent = p.brand;
   document.getElementById('lbCat').textContent = categoryIcon(p.cat) + ' ' + categoryLabel(p.cat);
   document.getElementById('lbCounter').textContent = (lightboxIndex+1) + ' / ' + items.length;
-  // WhatsApp-Nachricht: Bild-Link zuerst, damit WhatsApp beim Empfaenger
-  // eine Bild-Vorschau automatisch anzeigt (WhatsApp nimmt die erste URL
-  // im Text fuer die Vorschau). Danach die Katalog-URL und Produktinfos.
-  // WhatsApp selbst kann in wa.me-Links keine Bilder direkt anhaengen --
-  // Vorschau ueber die URL im Text ist der beste verfuegbare Weg.
-  const imgLink = imgUrl(p.id, 1400);
+  // WhatsApp-Nachricht: nur Katalog-Link + Produktinfos.
+  // Der Katalog-Link zeigt das Produkt beim Empfaenger direkt an --
+  // ein separater Google-Drive-Bildlink ist ueberfluessig und wirkt technisch.
   const itemLink = location.origin + location.pathname + '#item=' + p.id;
   const waText = encodeURIComponent(
-    `${imgLink}\n\n` +
     `Hi! Interesse an: ${p.title} (${p.brand})\n` +
     `Im Katalog: ${itemLink}`
   );
