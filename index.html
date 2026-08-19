@@ -301,6 +301,11 @@ const CATEGORIES = [
   {key:'taschen', label:'Taschen', icon:'👜'},
   {key:'schmuck', label:'Schmuck', icon:'💎'},
   {key:'accessoires', label:'Accessoires', icon:'💍'},
+  {key:'sonnenbrillen', label:'Sonnenbrillen', icon:'🕶️'},
+  {key:'guertel', label:'Gürtel', icon:'🔗'},
+  {key:'schals', label:'Schals', icon:'🧣'},
+  {key:'geldboersen', label:'Geldbörsen', icon:'👛'},
+  {key:'socken', label:'Socken', icon:'🧦'},
   {key:'hoodies', label:'Hoodies', icon:'🧶'},
   {key:'jacken', label:'Jacken', icon:'🧥'},
   {key:'hosen', label:'Hosen', icon:'👖'},
@@ -312,10 +317,6 @@ const CATEGORIES = [
   {key:'rucksaecke', label:'Rucksäcke', icon:'🎒'},
   {key:'hemden', label:'Hemden', icon:'👔'}
 ];
-
-// Reihenfolge in der "Alle"-Ansicht: diese Kategorien zuerst zeigen,
-// damit beim Oeffnen der Seite direkt Schuhe/T-Shirts sichtbar sind.
-const FEATURED_ORDER = ['schuhe', 'tshirts'];
 
 const WHATSAPP_NUMBER = '491777211539';
 
@@ -388,15 +389,35 @@ function syncStateToUrl(){
   history.replaceState(null, '', hash ? '#'+hash : location.pathname + location.search);
 }
 
+// Pro Sitzung EINE stabile Zufallsreihenfolge, damit die Reihenfolge beim
+// Scrollen und Zurueckkommen gleich bleibt (nicht bei jedem Filter-Wechsel
+// neu wuerfeln -- das waere verwirrend).
+let sessionShuffleSeed = Date.now();
+function seededRandom(seed){
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+let stableShuffledProducts = null;
+function getStableShuffled(){
+  if(stableShuffledProducts) return stableShuffledProducts;
+  const rand = seededRandom(sessionShuffleSeed);
+  const arr = [...PRODUCTS];
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  stableShuffledProducts = arr;
+  return arr;
+}
+
 function baseList(){
   if(viewMode === 'gemerkt') return PRODUCTS.filter(p => savedIds.has(p.id));
   if(state.cat !== 'alle') return PRODUCTS.filter(p=>p.cat===state.cat);
-  // "Alle"-Ansicht: Featured-Kategorien zuerst (Schuhe, T-Shirts), Rest danach
-  const rank = c => {
-    const i = FEATURED_ORDER.indexOf(c);
-    return i === -1 ? FEATURED_ORDER.length : i;
-  };
-  return [...PRODUCTS].sort((a,b) => rank(a.cat) - rank(b.cat));
+  // "Alle"-Ansicht: bunt gemischt, aber pro Sitzung stabil
+  return getStableShuffled();
 }
 
 function uniqueBrands(){
@@ -541,7 +562,18 @@ function updateLightbox(){
   document.getElementById('lbBrand').textContent = p.brand;
   document.getElementById('lbCat').textContent = categoryIcon(p.cat) + ' ' + categoryLabel(p.cat);
   document.getElementById('lbCounter').textContent = (lightboxIndex+1) + ' / ' + items.length;
-  const waText = encodeURIComponent(`Hi! Interesse an: ${p.title} (${p.brand})`);
+  // WhatsApp-Nachricht: Bild-Link zuerst, damit WhatsApp beim Empfaenger
+  // eine Bild-Vorschau automatisch anzeigt (WhatsApp nimmt die erste URL
+  // im Text fuer die Vorschau). Danach die Katalog-URL und Produktinfos.
+  // WhatsApp selbst kann in wa.me-Links keine Bilder direkt anhaengen --
+  // Vorschau ueber die URL im Text ist der beste verfuegbare Weg.
+  const imgLink = imgUrl(p.id, 1400);
+  const itemLink = location.origin + location.pathname + '#item=' + p.id;
+  const waText = encodeURIComponent(
+    `${imgLink}\n\n` +
+    `Hi! Interesse an: ${p.title} (${p.brand})\n` +
+    `Im Katalog: ${itemLink}`
+  );
   document.getElementById('lbWhatsapp').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
   const likeBtn = document.getElementById('lbLike');
   likeBtn.classList.toggle('liked', savedIds.has(p.id));
