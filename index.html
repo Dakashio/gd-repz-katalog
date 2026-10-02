@@ -160,6 +160,16 @@
   .pill.new-pill.active{ background:linear-gradient(135deg,var(--gold),#a9843f); color:#1a1420; }
   .view-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 16px; margin-bottom:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); font-size:13px; color:var(--text-muted); }
   .view-bar:empty{ display:none; }
+  .view-bar:has(.reco){ display:block; padding:14px 0 12px; }
+  .reco-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:0 16px 10px; font-size:13px; color:var(--text-muted); }
+  .reco-head b{ color:var(--text); }
+  .view-bar .reco-all{ padding:0; font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--gold); text-decoration:underline; font-weight:400; white-space:nowrap; }
+  .reco-row{ display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; padding:0 16px; scroll-snap-type:x mandatory; scroll-padding-inline:16px; }
+  .reco-row::-webkit-scrollbar{ display:none; }
+  .view-bar .reco-item{ flex:0 0 auto; width:118px; display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:0; border-radius:10px; scroll-snap-align:start; font-weight:400; }
+  .reco-item img{ width:118px; height:118px; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--surface-hover); display:block; }
+  .reco-item:hover img{ border-color:var(--gold); }
+  .reco-item span{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .view-bar a, .view-bar button{ display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; }
   .view-bar .wa{ background:var(--green); color:#08210f; }
   .view-bar .ghost{ border:1px solid var(--border); color:var(--text); font-weight:600; }
@@ -390,7 +400,8 @@ function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
 let savedIds = new Set(lsGet('gdrepz_saved', []));
 function persistSaved(){ lsSet('gdrepz_saved', [...savedIds]); }
 function toggleSaved(id){
-  if(savedIds.has(id)) savedIds.delete(id); else savedIds.add(id);
+  if(savedIds.has(id)) savedIds.delete(id);
+  else { savedIds.add(id); const p = BY_ID.get(id); if(p && typeof bump==='function') bump(p.brand, p.cat, 4, 2); }
   persistSaved();
   updateSavedBadge();
 }
@@ -424,6 +435,100 @@ let newIds = [];
   newIds = stored.map(e=>e.id);
 })();
 const NEW_SET = new Set(newIds);
+
+// ---- "Für dich": Interessen-Profil (bleibt nur auf diesem Geraet) ----
+// Punkte pro Marke (b) und Kategorie (c). Alte Interessen verblassen langsam (5 % pro Tag).
+let profile = lsGet('gdrepz_profile', null) || {b:{}, c:{}, t:Date.now()};
+(function decayProfile(){
+  const days = (Date.now() - (profile.t||Date.now())) / 86400000;
+  if(days < 0.5) return;
+  const f = Math.pow(0.95, days);
+  for(const m of [profile.b, profile.c]) for(const k in m){ m[k] *= f; if(m[k] < 0.2) delete m[k]; }
+  profile.t = Date.now();
+  lsSet('gdrepz_profile', profile);
+})();
+function bump(brand, cat, wb, wc){
+  if(brand && wb) profile.b[brand] = (profile.b[brand]||0) + wb;
+  if(cat && wc) profile.c[cat] = (profile.c[cat]||0) + wc;
+  profile.t = Date.now();
+  lsSet('gdrepz_profile', profile);
+  recoCache = null;
+}
+function profileStrength(){ return Object.values(profile.b).reduce((s,v)=>s+v,0) + Object.values(profile.c).reduce((s,v)=>s+v,0)*0.5; }
+function profileReady(){ return profileStrength() >= 2; }
+function topBrands(n){ return Object.entries(profile.b).sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0]); }
+
+// Anonyme Statistik fuer Daniel (GoatCounter, ohne Cookies): was wird gesucht/angeschaut
+function track(path, title){ try{ window.goatcounter?.count({path, title: title||path, event:true}); }catch(e){} }
+
+// Verweildauer in der Grossansicht: laenger anschauen = staerkeres Interesse
+let dwellTimers = [];
+function startDwell(p){
+  stopDwell();
+  bump(p.brand, p.cat, 0.5, 0.3);
+  dwellTimers.push(setTimeout(()=>{ bump(p.brand, p.cat, 1.5, 0.8); track('marke/'+clean(p.brand), clean(p.brand)); }, 4000));
+  dwellTimers.push(setTimeout(()=>bump(p.brand, p.cat, 1.5, 0.8), 10000));
+}
+function stopDwell(){ dwellTimers.forEach(clearTimeout); dwellTimers = []; }
+
+// Suche auswerten: passende Marken/Kategorien bekommen Punkte
+let searchTrackTimer;
+function learnFromSearch(q){
+  q = q.trim().toLowerCase();
+  if(q.length < 3) return;
+  clearTimeout(searchTrackTimer);
+  searchTrackTimer = setTimeout(()=>{
+    const brands = [...BRAND_COUNT.keys()].filter(b=>clean(b).toLowerCase().includes(q)).slice(0,3);
+    brands.forEach(b=>bump(b, null, 2, 0));
+    CATEGORIES.filter(c=>c.label.toLowerCase().includes(q)).forEach(c=>bump(null, c.key, 0, 1.5));
+    track('suche/'+q, 'Suche: '+q);
+  }, 1200);
+}
+
+// Empfehlungen: nach Interesse gewichtet, aber gemischt (nicht 200x dieselbe Marke).
+// Schon angesehene und gemerkte Teile werden ausgelassen.
+let recoCache = null;
+function recommendations(limit){
+  if(recoCache && recoCache.length >= limit) return recoCache.slice(0, limit);
+  const seen = new Set([...recentIds, ...savedIds]);
+  // Pro interessanter Marke eine Gruppe; Teile nur mit passender Kategorie (fremde Marke)
+  // landen gemeinsam in einer kleineren "Entdecken"-Gruppe.
+  const groups = new Map();
+  const maxC = Math.max(0, ...Object.values(profile.c));
+  for(const p of getStableShuffled()){
+    if(seen.has(p.id)) continue;
+    const bw = profile.b[p.brand]||0, cw = profile.c[p.cat]||0;
+    if(bw <= 0 && cw <= 0) continue;
+    const key = bw > 0 ? p.brand : '__entdecken';
+    if(!groups.has(key)) groups.set(key, {items:[], w: bw > 0 ? bw : 0.5*maxC, taken:0});
+    groups.get(key).items.push({p, s: bw + cw});
+  }
+  groups.forEach(g=>g.items.sort((a,b)=>b.s-a.s));
+  const out = [];
+  const all = [...groups.values()];
+  const disc = groups.get('__entdecken');
+  while(out.length < Math.max(limit, 240) && all.some(g=>g.taken < g.items.length)){
+    // Jedes 5. Teil: etwas Neues aus deinen Lieblings-Kategorien (andere Marken)
+    if(disc && out.length % 5 === 4 && disc.taken < disc.items.length){
+      out.push(disc.items[disc.taken++].p); continue;
+    }
+    let best = null, bestScore = -1;
+    for(const g of all){
+      if(g === disc && out.length % 5 !== 4 && all.some(x=>x!==disc && x.taken < x.items.length)) continue;
+      if(g.taken >= g.items.length) continue;
+      const s = g.w / Math.pow(g.taken + 1, 0.6);
+      if(s > bestScore){ bestScore = s; best = g; }
+    }
+    out.push(best.items[best.taken++].p);
+  }
+  recoCache = out;
+  return out.slice(0, limit);
+}
+function resetProfile(){
+  profile = {b:{}, c:{}, t:Date.now()};
+  lsSet('gdrepz_profile', profile);
+  recoCache = null;
+}
 
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
@@ -505,6 +610,7 @@ function baseList(){
   if(viewMode === 'zuletzt') return idsToProducts(recentIds);
   if(viewMode === 'neu') return idsToProducts(newIds);
   if(viewMode === 'liste') return idsToProducts(listIds);
+  if(viewMode === 'fuerdich') return recommendations(240);
   // Kategorie UND "Alle" gemischt anzeigen -> jede Kategorie wirkt abwechslungsreich
   const shuffled = getStableShuffled();
   if(state.cat !== 'alle') return shuffled.filter(p=>p.cat===state.cat);
@@ -538,6 +644,7 @@ function invalidate(){ filteredCache = null; }
 function renderCategoryPills(){
   const wrap = document.getElementById('catPills');
   const specials = [
+    {view:'fuerdich', label:'Für dich', icon:'🎯', count: '', show: profileReady(), cls:'new-pill'},
     {view:'gemerkt', label:'Gemerkt', icon:'❤️', count: savedIds.size, show:true},
     {view:'neu', label:'Neu für dich', icon:'✨', count: newIds.length, show: newIds.length>0, cls:'new-pill'},
     {view:'zuletzt', label:'Zuletzt angesehen', icon:'🕘', count: recentIds.length, show: recentIds.length>0},
@@ -576,7 +683,7 @@ function renderActiveFilters(){
   const wrap = document.getElementById('activeFilters');
   const chips = [];
   if(viewMode!=='alle'){
-    const labels = {gemerkt:'❤️ Gemerkt', zuletzt:'🕘 Zuletzt angesehen', neu:'✨ Neu für dich', liste:'📋 Geteilte Liste'};
+    const labels = {gemerkt:'❤️ Gemerkt', zuletzt:'🕘 Zuletzt angesehen', neu:'✨ Neu für dich', liste:'📋 Geteilte Liste', fuerdich:'🎯 Für dich'};
     chips.push({type:'view', label: labels[viewMode] || viewMode});
   } else if(state.cat!=='alle'){
     chips.push({type:'cat', label: categoryIcon(state.cat)+' '+categoryLabel(state.cat)});
@@ -605,6 +712,20 @@ function renderViewBar(){
   } else if(viewMode==='liste'){
     bar.innerHTML = `<span>📋 Jemand hat diese Auswahl mit dir geteilt.</span>
       <button class="ghost" id="saveListBtn">♥ Alle merken</button>`;
+  } else if(viewMode==='fuerdich'){
+    const tb = topBrands(3).map(clean).join(', ');
+    bar.innerHTML = `<span>🎯 Ausgewählt nach dem, was du dir anschaust${tb?` – v. a. <b>${esc(tb)}</b>`:''}.</span>
+      <button class="ghost" id="resetProfileBtn">↺ Zurücksetzen</button>`;
+  } else if(viewMode==='alle' && state.cat==='alle' && state.brand==='alle' && !state.q && profileReady()){
+    const recs = recommendations(12);
+    if(!recs.length){ bar.innerHTML=''; return; }
+    const why = clean(topBrands(1)[0] || '');
+    bar.innerHTML = `<div class="reco">
+      <div class="reco-head"><span>🎯 Für dich ausgewählt${why?` · weil dich <b>${esc(why)}</b> interessiert`:''}</span>
+        <button class="reco-all" id="recoAllBtn">Alle ansehen →</button></div>
+      <div class="reco-row">${recs.map(r=>`<button class="reco-item" data-id="${r.id}" aria-label="${esc(clean(r.title))}">
+        <img src="${imgUrl(r.id,300)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(clean(r.brand))}</span></button>`).join('')}</div>
+    </div>`;
   } else if(viewMode==='neu'){
     bar.innerHTML = `<span>✨ Seit deinem letzten Besuch neu im Katalog.</span>`;
   } else {
@@ -700,6 +821,7 @@ function openLightbox(i){
   document.body.style.overflow = 'hidden';
 }
 function closeLightbox(){
+  stopDwell();
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
   // Zum zuletzt angesehenen Teil im Grid springen, damit man weiterstoebern kann
@@ -707,6 +829,7 @@ function closeLightbox(){
     document.querySelector(`.card[data-index="${lightboxIndex}"]`)?.scrollIntoView({block:'center'});
   }
   renderCategoryPills();
+  if(viewMode==='alle') renderViewBar();
 }
 function preload(id){ const im = new Image(); im.referrerPolicy = 'no-referrer'; im.src = imgUrl(id, 1400); }
 
@@ -751,6 +874,7 @@ function updateLightbox(){
   likeBtn.dataset.id = p.id;
   likeBtn.textContent = savedIds.has(p.id) ? '♥ Gemerkt' : '♥ Merken';
   renderRelated(p);
+  startDwell(p);
   if(viewMode!=='zuletzt') pushRecent(p.id);
   // Nachbarn vorladen -> Wischen fuehlt sich sofort an
   if(items.length>1){
@@ -800,13 +924,14 @@ document.getElementById('genderRow').addEventListener('click', e=>{
 document.getElementById('catPills').addEventListener('click', e=>{
   const btn = e.target.closest('.pill'); if(!btn) return;
   if(btn.dataset.view){ viewMode = btn.dataset.view; state.cat = 'alle'; }
-  else { viewMode = 'alle'; state.cat = btn.dataset.cat; }
+  else { viewMode = 'alle'; state.cat = btn.dataset.cat; if(state.cat!=='alle') bump(null, state.cat, 0, 1); }
   state.brand = 'alle';
   renderAll();
 });
 document.getElementById('brandChips').addEventListener('click', e=>{
   const btn = e.target.closest('.chip'); if(!btn) return;
   state.brand = btn.dataset.brand;
+  if(state.brand!=='alle') bump(state.brand, null, 1.5, 0);
   renderAll();
 });
 document.getElementById('activeFilters').addEventListener('click', e=>{
@@ -821,6 +946,10 @@ document.getElementById('activeFilters').addEventListener('click', e=>{
   renderAll();
 });
 document.getElementById('viewBar').addEventListener('click', e=>{
+  const recoItem = e.target.closest('.reco-item');
+  if(recoItem){ openProductById(recoItem.dataset.id); return; }
+  if(e.target.closest('#recoAllBtn')){ viewMode='fuerdich'; state.cat='alle'; state.brand='alle'; renderAll(); return; }
+  if(e.target.closest('#resetProfileBtn')){ resetProfile(); viewMode='alle'; renderAll(); showToast('Empfehlungen zurückgesetzt'); return; }
   if(e.target.closest('#copyListBtn')){
     copyText(listLink([...savedIds].reverse().slice(0,30)), 'Listen-Link kopiert');
   }
@@ -880,7 +1009,7 @@ if('IntersectionObserver' in window){
 let searchTimer;
 document.getElementById('searchInput').addEventListener('input', e=>{
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(()=>{ state.q = e.target.value; renderAll(); }, 180);
+  searchTimer = setTimeout(()=>{ state.q = e.target.value; learnFromSearch(state.q); renderAll(); }, 180);
 });
 function openRandom(){
   const items = filteredProducts();
@@ -907,6 +1036,10 @@ document.getElementById('shareViewBtn').addEventListener('click', ()=>{
   copyText(location.href, 'Ansicht-Link kopiert');
 });
 document.getElementById('lbClose').addEventListener('click', closeLightbox);
+document.getElementById('lbWhatsapp').addEventListener('click', ()=>{
+  const p = filteredProducts()[lightboxIndex];
+  if(p){ bump(p.brand, p.cat, 5, 2); track('anfrage/'+clean(p.brand), 'Anfrage: '+clean(p.brand)); }
+});
 document.getElementById('lbPrev').addEventListener('click', ()=>navLightbox(-1));
 document.getElementById('lbNext').addEventListener('click', ()=>navLightbox(1));
 document.getElementById('lbLike').addEventListener('click', ()=>{
