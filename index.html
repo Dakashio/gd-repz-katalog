@@ -1240,7 +1240,10 @@ try{ if(!sessionStorage.getItem('gdrepz_session')){ sessionStorage.setItem('gdre
 if(isStandalone && new URLSearchParams(location.search).get('source')==='app') track('app/start', 'Start als App');
 let installEvent = null;
 function installDismissed(){ return Date.now() - lsGet('gdrepz_install_x', 0) < 14*86400000; }
+// Install-Banner an/aus: auf true setzen, um den "Als App installieren"-Hinweis wieder zu zeigen
+const SHOW_INSTALL_BAR = false;
 function showInstallBar(){
+  if(!SHOW_INSTALL_BAR) return;
   if(isStandalone || installDismissed()) return;
   if(!installEvent && !isIOS) return;
   if(isIOS){
