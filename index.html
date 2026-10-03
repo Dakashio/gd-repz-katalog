@@ -259,6 +259,21 @@
   @media (prefers-reduced-motion:reduce){
     *{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }
   }
+
+  /* ---- iPhone: Notch/Dynamic Island & Home-Indikator (v. a. als Homescreen-App) ---- */
+  .site-header{ padding-top:calc(16px + env(safe-area-inset-top)); padding-left:max(clamp(16px,4vw,48px), env(safe-area-inset-left)); padding-right:max(clamp(16px,4vw,48px), env(safe-area-inset-right)); }
+  .controls{ top:var(--header-h, 65px); }
+  .lb-close{ top:calc(18px + env(safe-area-inset-top)); }
+  .mega-menu{ padding-top:calc(60px + env(safe-area-inset-top)); padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+  .install-bar{ bottom:calc(12px + env(safe-area-inset-bottom)); }
+  .top-btn{ bottom:calc(22px + env(safe-area-inset-bottom)); }
+  .toast{ bottom:calc(22px + env(safe-area-inset-bottom)); }
+  footer{ padding-bottom:calc(26px + env(safe-area-inset-bottom)); }
+
+  /* ---- Menue-Button auffaelliger ---- */
+  #menuBtn{ border-color:var(--violet); background:linear-gradient(135deg,rgba(157,92,255,.22),rgba(108,43,217,.22)); }
+  .pill.menu-pill{ border:1px solid var(--gold); color:var(--gold); background:rgba(203,169,104,.1); }
+  .pill.menu-pill:hover{ background:var(--gold); color:#1a1420; }
 </style>
 </head>
 <body>
@@ -722,7 +737,8 @@ function renderCategoryPills(){
     const active = viewMode==='alle' && state.cat===c.key;
     return `<button class="pill ${active?'active':''}" data-cat="${c.key}">${c.icon} ${c.label} <span class="count">${count}</span></button>`;
   }).join('');
-  wrap.innerHTML = specialHtml + catHtml;
+  const menuHtml = '<button class="pill menu-pill" data-menu="1">☰ Alle Kategorien &amp; Marken</button><span class="pill-sep"></span>';
+  wrap.innerHTML = menuHtml + specialHtml + catHtml;
 }
 
 function renderGenderRow(){
@@ -984,6 +1000,7 @@ document.getElementById('genderRow').addEventListener('click', e=>{
 });
 document.getElementById('catPills').addEventListener('click', e=>{
   const btn = e.target.closest('.pill'); if(!btn) return;
+  if(btn.dataset.menu){ openMegaMenu(); return; }
   if(btn.dataset.view){ viewMode = btn.dataset.view; state.cat = 'alle'; }
   else { viewMode = 'alle'; state.cat = btn.dataset.cat; if(state.cat!=='alle') bump(null, state.cat, 0, 1); }
   state.brand = 'alle';
@@ -1257,6 +1274,13 @@ document.getElementById('installX').addEventListener('click', ()=>{
 });
 document.querySelectorAll('a[href*="instagram.com"]').forEach(a=>a.addEventListener('click', ()=>track('klick/instagram','Instagram-Klick')));
 window.addEventListener('appinstalled', ()=>{ document.getElementById('installBar').hidden = true; });
+
+function syncHeaderHeight(){
+  document.documentElement.style.setProperty('--header-h', document.querySelector('.site-header').offsetHeight + 'px');
+}
+syncHeaderHeight();
+window.addEventListener('resize', syncHeaderHeight);
+window.addEventListener('orientationchange', ()=>setTimeout(syncHeaderHeight, 300));
 
 const deepLinkItem = loadStateFromUrl();
 document.getElementById('searchInput').value = state.q;
