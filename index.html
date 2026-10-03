@@ -6,6 +6,26 @@
 <title>GD.Repz – Katalog</title>
 <meta name="description" content="GD.Repz Produktkatalog – Sneaker, Taschen, Schmuck und mehr, kategorisiert nach Marke.">
 <meta name="theme-color" content="#0B0710">
+<!-- Link-Vorschau (WhatsApp, Instagram, iMessage, Telegram …) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GD.Repz">
+<meta property="og:title" content="GD.Repz – 27.000+ Teile, sortiert nach Marke">
+<meta property="og:description" content="Sneaker, Taschen, Hoodies, Schmuck & mehr. Durchstöbern, merken und direkt per WhatsApp anfragen.">
+<meta property="og:url" content="https://dakashio.github.io/gd-repz-katalog/">
+<meta property="og:image" content="https://dakashio.github.io/gd-repz-katalog/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://dakashio.github.io/gd-repz-katalog/og-image.png">
+<!-- App / Homescreen -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GD.Repz">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -75,6 +95,9 @@
   .hero p{ max-width:540px; color:var(--text-muted); font-size:13.5px; line-height:1.5; margin:0 0 14px; }
   .stats{ display:flex; gap:20px; flex-wrap:wrap; }
   .stat{ display:flex; flex-direction:column; gap:1px; }
+  .hero-links{ display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .hero-link{ display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; color:#fff; }
+  .hero-link.insta{ background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888); }
   .stat b{ font-family:var(--font-display); font-weight:800; font-size:20px; }
   .stat span{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); }
 
@@ -178,6 +201,16 @@
 
   footer{ border-top:1px solid var(--border); padding:26px clamp(16px,4vw,48px); text-align:center; color:var(--text-faint); font-size:12.5px; line-height:1.7; }
   footer a{ color:var(--gold); text-decoration:none; }
+  .footer-links{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  footer .insta-btn{ display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; font-weight:700; font-size:12.5px; color:#fff; background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888); }
+  footer .insta-btn.wa{ background:var(--green); color:#08210f; }
+  .install-bar{ position:fixed; left:12px; right:12px; bottom:12px; z-index:90; max-width:520px; margin:0 auto; display:flex; align-items:center; gap:12px; padding:12px 12px 12px 14px; border-radius:16px; background:var(--surface); border:1px solid var(--violet); box-shadow:0 14px 40px rgba(0,0,0,.55); }
+  .install-bar[hidden]{ display:none; }
+  .install-bar img{ border-radius:10px; flex:0 0 auto; }
+  .install-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; font-size:13px; }
+  .install-text span{ color:var(--text-muted); font-size:12px; line-height:1.35; }
+  .install-go{ flex:0 0 auto; padding:9px 14px; border-radius:999px; background:linear-gradient(135deg,var(--violet),var(--violet-deep)); color:#fff; font-weight:700; font-size:12.5px; }
+  .install-x{ flex:0 0 auto; width:30px; height:30px; border-radius:50%; color:var(--text-faint); font-size:14px; }
 
   .top-btn{ position:fixed; bottom:22px; right:22px; width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,var(--violet),var(--violet-deep)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:60; box-shadow:0 8px 22px rgba(0,0,0,.5); }
   .top-btn.show{ opacity:1; pointer-events:auto; }
@@ -249,6 +282,9 @@
     <div class="stat"><b id="statBrands">0</b><span>Marken im Katalog</span></div>
     <div class="stat"><b id="statItems">0</b><span>Teile im Katalog</span></div>
   </div>
+  <div class="hero-links">
+    <a class="hero-link insta" href="https://www.instagram.com/gd.repzz/" target="_blank" rel="noopener">📸 @gd.repzz folgen</a>
+  </div>
 </section>
 
 <div class="controls">
@@ -291,7 +327,8 @@
 
 <footer>
   GD.Repz — privater Produktkatalog · Bilder aus dem eigenen Google-Drive-Archiv<br>
-  Interesse an einem Teil? Meld dich per Insta/WhatsApp. <!-- TODO Daniel: echten Insta-Link hier einsetzen -->
+  Interesse an einem Teil? Meld dich per <a href="https://www.instagram.com/gd.repzz/" target="_blank" rel="noopener">Instagram @gd.repzz</a> oder <a href="https://wa.me/491777211539" target="_blank" rel="noopener">WhatsApp</a>.<br>
+  <span class="footer-links"><a href="https://www.instagram.com/gd.repzz/" target="_blank" rel="noopener" class="insta-btn">📸 Folge @gd.repzz</a><a href="https://chat.whatsapp.com/HuC41UVs0Bl8YC3M11CTLZ" target="_blank" rel="noopener" class="insta-btn wa">💬 WhatsApp-Gruppe</a></span>
 </footer>
 
 <button class="top-btn" id="topBtn" aria-label="Nach oben">↑</button>
@@ -333,6 +370,13 @@
     <div class="lb-counter" id="lbCounter"></div>
     <div class="lb-related" id="lbRelated"></div>
   </div>
+</div>
+
+<div class="install-bar" id="installBar" hidden>
+  <img src="icon-192.png" alt="" width="40" height="40">
+  <div class="install-text"><b>GD.Repz als App</b><span id="installHint">Direkt vom Homescreen stöbern – ohne Link suchen.</span></div>
+  <button class="install-go" id="installGo">Installieren</button>
+  <button class="install-x" id="installX" aria-label="Schließen">✕</button>
 </div>
 
 <div class="toast" id="toast">Link kopiert</div>
@@ -389,6 +433,23 @@ function categoryIcon(key){ const c = CATEGORIES.find(c=>c.key===key); return c 
 function clean(s){ return String(s||'').replace(/[_\s]+$/,'').replace(/_/g,' ').trim(); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// Lesbare Titel: Ist der Titel nur der Markenname ("Gucci"), wird die Kategorie
+// angehaengt ("Gucci Hoodie"). Doppelte Woerter ("Nike Nike Tn") werden entfernt.
+const CAT_SINGULAR = {schuhe:'Sneaker', tshirts:'T-Shirt', taschen:'Tasche', schmuck:'Schmuck', accessoires:'Accessoire',
+  sonnenbrillen:'Sonnenbrille', guertel:'Gürtel', schals:'Schal', geldboersen:'Geldbörse', socken:'Socken', hoodies:'Hoodie',
+  jacken:'Jacke', hosen:'Hose', muetzen:'Cap', trainingsanzug:'Trainingsanzug', westen:'Weste', football:'Trikot',
+  elektronik:'', rucksaecke:'Rucksack', hemden:'Hemd'};
+function buildTitle(p){
+  let t = clean(p.title).replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,'').replace(/\s+/g,' ').trim();
+  t = t.split(' ').filter((w,i,a)=>i===0 || w.toLowerCase()!==a[i-1].toLowerCase()).join(' ');
+  const b = clean(p.brand);
+  if(!t || t.toLowerCase()===b.toLowerCase()){
+    const s = CAT_SINGULAR[p.cat] || '';
+    t = (s && !b.toLowerCase().includes(s.toLowerCase())) ? `${b} ${s}` : b;
+  }
+  return t;
+}
+PRODUCTS.forEach(p=>{ p.dt = buildTitle(p); });
 const BY_ID = new Map(PRODUCTS.map(p=>[p.id,p]));
 const BRAND_COUNT = new Map();
 PRODUCTS.forEach(p=>BRAND_COUNT.set(p.brand, (BRAND_COUNT.get(p.brand)||0)+1));
@@ -634,7 +695,7 @@ function filteredProducts(){
       const g = productGender(p);
       if(g!==state.gender && g!=='unisex') return false;
     }
-    if(q && !p.brand.toLowerCase().includes(q) && !p.title.toLowerCase().includes(q) && !categoryLabel(p.cat).toLowerCase().includes(q)) return false;
+    if(q && !p.brand.toLowerCase().includes(q) && !p.dt.toLowerCase().includes(q) && !categoryLabel(p.cat).toLowerCase().includes(q) && !(CAT_SINGULAR[p.cat]||'-').toLowerCase().includes(q)) return false;
     return true;
   });
   return filteredCache;
@@ -701,7 +762,7 @@ function renderViewBar(){
   const bar = document.getElementById('viewBar');
   if(viewMode==='gemerkt' && savedIds.size){
     const ids = [...savedIds].reverse().slice(0, 30);
-    const lines = idsToProducts(ids).slice(0, 10).map(p=>`• ${clean(p.title)} (${categoryLabel(p.cat)})`).join('\n');
+    const lines = idsToProducts(ids).slice(0, 10).map(p=>`• ${p.dt} (${categoryLabel(p.cat)})`).join('\n');
     const more = savedIds.size > 10 ? `\n…und ${savedIds.size-10} weitere` : '';
     const text = `Hi! Ich habe mir ${savedIds.size} Teile gemerkt:\n${lines}${more}\n\nMeine Liste: ${listLink(ids)}`;
     bar.innerHTML = `<span>Deine Merkliste wird nur auf diesem Gerät gespeichert.</span>
@@ -723,7 +784,7 @@ function renderViewBar(){
     bar.innerHTML = `<div class="reco">
       <div class="reco-head"><span>🎯 Für dich ausgewählt${why?` · weil dich <b>${esc(why)}</b> interessiert`:''}</span>
         <button class="reco-all" id="recoAllBtn">Alle ansehen →</button></div>
-      <div class="reco-row">${recs.map(r=>`<button class="reco-item" data-id="${r.id}" aria-label="${esc(clean(r.title))}">
+      <div class="reco-row">${recs.map(r=>`<button class="reco-item" data-id="${r.id}" aria-label="${esc(r.dt)}">
         <img src="${imgUrl(r.id,300)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(clean(r.brand))}</span></button>`).join('')}</div>
     </div>`;
   } else if(viewMode==='neu'){
@@ -740,7 +801,7 @@ function emptyMessage(){
 }
 
 function cardHtml(p, i){
-  const title = esc(clean(p.title)), brand = esc(clean(p.brand));
+  const title = esc(p.dt), brand = esc(clean(p.brand));
   const isNew = viewMode!=='neu' && NEW_SET.has(p.id);
   return `
     <div class="card" data-index="${i}" tabindex="0" role="button" aria-label="${title}, ${brand}">
@@ -848,7 +909,7 @@ function renderRelated(p){
   wrap.innerHTML = `
     <div class="lb-related-head"><span>Mehr von ${esc(clean(p.brand))}</span>
       <button id="lbBrandAll" data-brand="${esc(p.brand)}">Alle ${total} ansehen →</button></div>
-    <div class="lb-related-grid">${rel.map(r=>`<button data-id="${r.id}" aria-label="${esc(clean(r.title))}"><img src="${imgUrl(r.id,200)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`;
+    <div class="lb-related-grid">${rel.map(r=>`<button data-id="${r.id}" aria-label="${esc(r.dt)}"><img src="${imgUrl(r.id,200)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`;
 }
 
 function updateLightbox(){
@@ -861,13 +922,13 @@ function updateLightbox(){
   const hi = new Image(); hi.referrerPolicy = 'no-referrer';
   hi.onload = ()=>{ if(items[lightboxIndex]===p) img.src = hi.src; };
   hi.src = imgUrl(p.id, 1400);
-  img.alt = clean(p.title) + ' – ' + clean(p.brand);
-  document.getElementById('lbTitle').textContent = clean(p.title);
+  img.alt = p.dt + ' – ' + clean(p.brand);
+  document.getElementById('lbTitle').textContent = p.dt;
   document.getElementById('lbBrand').textContent = clean(p.brand);
   document.getElementById('lbCat').textContent = categoryIcon(p.cat) + ' ' + categoryLabel(p.cat);
   document.getElementById('lbCounter').textContent = (lightboxIndex+1) + ' / ' + items.length;
   const itemLink = location.origin + location.pathname + '#item=' + p.id;
-  const waText = encodeURIComponent(`Hi! Interesse an: ${clean(p.title)} (${categoryLabel(p.cat)})\nIm Katalog: ${itemLink}`);
+  const waText = encodeURIComponent(`Hi! Interesse an: ${p.dt} (${categoryLabel(p.cat)})\nIm Katalog: ${itemLink}`);
   document.getElementById('lbWhatsapp').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
   const likeBtn = document.getElementById('lbLike');
   likeBtn.classList.toggle('liked', savedIds.has(p.id));
@@ -1150,6 +1211,52 @@ lbContentEl.addEventListener('touchend', e=>{
     navLightbox(dx < 0 ? 1 : -1);
   }
 }, {passive:true});
+
+// ---- App-Installation (PWA) ----
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+let visits = lsGet('gdrepz_visits', 0);
+try{ if(!sessionStorage.getItem('gdrepz_session')){ sessionStorage.setItem('gdrepz_session','1'); visits++; lsSet('gdrepz_visits', visits); } }catch(e){}
+if(isStandalone && new URLSearchParams(location.search).get('source')==='app') track('app/start', 'Start als App');
+let installEvent = null;
+function installDismissed(){ return Date.now() - lsGet('gdrepz_install_x', 0) < 14*86400000; }
+function showInstallBar(){
+  if(isStandalone || installDismissed()) return;
+  if(!installEvent && !isIOS) return;
+  if(isIOS){
+    document.getElementById('installHint').innerHTML = 'Tippe unten auf <b>Teilen</b> ⬆️ und dann <b>„Zum Home-Bildschirm“</b>.';
+    document.getElementById('installGo').hidden = true;
+  }
+  document.getElementById('installBar').hidden = false;
+}
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); installEvent = e;
+  if(visits >= 2) showInstallBar();
+});
+// Beim ersten Besuch erst nach ein paar Klicks fragen, ab dem 2. Besuch direkt
+if(isIOS && visits >= 2) setTimeout(showInstallBar, 2500);
+let lbOpens = 0;
+document.getElementById('lightbox').addEventListener('transitionend', e=>{
+  if(e.target.id!=='lightbox') return;
+  if(document.getElementById('lightbox').classList.contains('open') && ++lbOpens === 3) setTimeout(showInstallBar, 1500);
+});
+document.getElementById('installGo').addEventListener('click', async ()=>{
+  if(!installEvent) return;
+  installEvent.prompt();
+  const res = await installEvent.userChoice.catch(()=>null);
+  if(res && res.outcome==='accepted') track('app/installiert', 'App installiert');
+  installEvent = null;
+  document.getElementById('installBar').hidden = true;
+});
+document.getElementById('installX').addEventListener('click', ()=>{
+  lsSet('gdrepz_install_x', Date.now());
+  document.getElementById('installBar').hidden = true;
+});
+document.querySelectorAll('a[href*="instagram.com"]').forEach(a=>a.addEventListener('click', ()=>track('klick/instagram','Instagram-Klick')));
+window.addEventListener('appinstalled', ()=>{ document.getElementById('installBar').hidden = true; });
 
 const deepLinkItem = loadStateFromUrl();
 document.getElementById('searchInput').value = state.q;
